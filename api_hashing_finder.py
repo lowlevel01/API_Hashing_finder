@@ -25,30 +25,40 @@ def api_hashing_indicator(exe_path, is_pe_file):
         code_base = 0x0
 
     md = Cs(CS_ARCH_X86, CS_MODE)
+    disasm_list = list(md.disasm(code_section, code_base))
+    
     suspicious_hex_value = []
     no_suspicious_hex_address = []
-    disasm_list = list(md.disasm(code_section, code_base))
-
     probable_resolve_function = []
     result = {}
     count_hash = {}
     count = 0
+
     for i, instr in enumerate(disasm_list):
-        
+
+        # For the moment, the script get hex value from -push- and -mov- instructions
         if instr.mnemonic in ["push", "mov"]:
             try:
+                # In case of a -mov- mnemonic, we only get the second operands : mov eax, 0x????????
                 operand = instr.op_str.split(',')[-1].strip() if instr.mnemonic == "mov" else instr.op_str.strip()
                 if re.fullmatch(r'0x[0-9A-Fa-f]+', operand):  
                     op = int(operand, 16)
+                    # What's a probable hash value in hexadecimal ?
+                    # A value > 0x10000
+                    # The number of '0' < 1 to avoid offset like 0x1230000 | Maybe increase at 2 (->3)
+                    # The number of 'f' < 4 to avoid test value like 0xffffffff
+                    # Avoid the maximum of occurences of consecutive value like 0x123...,0x123,....
+                    # WARNING, some hash algorithms can use consecutive value, maybe edit the conditions...
+                    # Skip small hex value to avoid constant or loop index
                     if (0x10000 < op and 
                     str(hex(op)).count('0') <= 2 and 
                     str(hex(op)).count('f') <= 4 and 
-                    op not in suspicious_hex_value and 
+                    # op not in suspicious_hex_value and 
                     hex(op)[:6] not in no_suspicious_hex_address and 
                     op > 0xFFFFFF):
                         
                         no_suspicious_hex_address.append(hex(op)[:6])
-                        suspicious_hex_value.append(op)
+                        #suspicious_hex_value.append(op)
                         
                         for j in range(i + 1, min(i + 11, len(disasm_list))):  
                             next_instr = disasm_list[j]
