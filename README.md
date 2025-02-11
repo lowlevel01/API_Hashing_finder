@@ -1,2 +1,73 @@
-# API_Hashing_finder
-A python script which search inside a binary and export a probable list of API hash.
+# API Hashing Finder Tool
+
+## Description
+
+This tool analyzes a PE file or shellcode to identify probable hash values used in API hashing mechanisms. The purpose is to detect hidden API calls that malware authors often use to obfuscate their import table.
+The script disassembles the executable code, extracts potential API hash values, and identifies which functions resolve them. It provides different output modes to help analyze and interpret the results.
+
+## Features
+
+- Detects probable API hash values in a PE file or raw shellcode.
+- Identifies resolving functions that might use these hashes.
+- Offers different output modes:
+  - **Default mode**: Outputs the most referenced hash list.
+  - **All mode**: Displays all detected hash values.
+  - **Verbose mode**: Provides detailed information, including hash addresses and resolving function addresses.
+- Supports both 32-bit and 64-bit binaries.
+- Can generate an output file containing the results. [Not implemented yet ;)]
+
+## Requirements
+
+- Python 3
+- Required Python libraries:
+  - `pefile`
+  - `numpy`
+  - `capstone`
+  - `argparse`
+
+You can install the dependencies using:
+```bash
+pip install pefile numpy capstone
+```
+
+## Usage
+
+```bash
+python script.py -f <path_to_binary> [options]
+```
+
+### Arguments:
+
+- `-f, --file <path>` : Specify the binary file to analyze (required).
+- `-a, --all` : Show all lists of probable hash values (recommended for deeper analysis).
+- `-o, --output <file>` : Save the results to a file.
+- `-v, --verbose` : Display detailed information about hash values.
+
+### Example:
+
+```bash
+python api_hashing_finder.py -f malv_file.bin -av
+```
+
+This will analyze `malv_file.bin`, displaying all detected hash values and detailed information.
+
+## Output Interpretation
+
+- The tool extracts hex values from `push` and `mov` instructions.
+- It filters out values that are unlikely to be hashes (e.g., small constants, loop indices).
+- It identifies the resolving functions by checking for `call` instructions within a short range.
+- The most frequently used hash values and the most dispersed hash values (statistically) are highlighted.
+
+## Limitations
+
+- Some hash algorithms may use consecutive values, which could require tweaking the filtering conditions.
+- The script does not attempt to brute-force or resolve the hash values back to API names.
+
+## License
+
+This project is released under the MIT License.
+
+## Author
+
+R3dy
+
