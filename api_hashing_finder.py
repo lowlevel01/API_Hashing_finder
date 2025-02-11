@@ -31,8 +31,10 @@ def api_hashing_indicator(exe_path, is_pe_file):
 
     probable_resolve_function = []
     result = {}
-
+    count_hash = {}
+    count = 0
     for i, instr in enumerate(disasm_list):
+        
         if instr.mnemonic in ["push", "mov"]:
             try:
                 operand = instr.op_str.split(',')[-1].strip() if instr.mnemonic == "mov" else instr.op_str.strip()
@@ -47,6 +49,7 @@ def api_hashing_indicator(exe_path, is_pe_file):
                         
                         no_suspicious_hex_address.append(hex(op)[:6])
                         suspicious_hex_value.append(op)
+                        
                         for j in range(i + 1, min(i + 11, len(disasm_list))):  
                             next_instr = disasm_list[j]
                             if next_instr.mnemonic == "call":
@@ -58,19 +61,30 @@ def api_hashing_indicator(exe_path, is_pe_file):
                                     'address_of_hash': instr.address,
                                     'hash_value': hex(op)
                                 })
+                    
+                                count+=1
+                               
                                 break  
+                        count_hash[next_instr.op_str] = count
+                        print(count_hash[next_instr.op_str])
             except ValueError as e:
                 print(e)
                 continue  
 
-   
+    print(count_hash)
+    max_address = max(count_hash, key=count_hash.get)
+    max_count = count_hash[max_address]
+    print(f"\nHave value of the most called list (x-ref)")
+    for key, list_hash in result.items():
+        if key == max_address:
+            for entry in list_hash:
+                print(entry['hash_value'])
+    
+
+    #print(count)
+    # The most dispersed list
     best_std = float('-inf')
     best_list = None
-    for key, list_hash in result.items():
-        print(key)
-        hash_values = [int(entry["hash_value"], 16) for entry in list_hash]
-        hash_values.sort()
-        print(hash_values)
     for key, list_hash in result.items():
         stat_test = [int(entry["hash_value"], 16) for entry in list_hash]
         stat_test.sort()
@@ -84,19 +98,19 @@ def api_hashing_indicator(exe_path, is_pe_file):
                 best_list = key  
 
 
-
-    if best_std != float('-inf'):
-        print(f"\n La liste la plus dispersée est : {best_list} (Écart-type : {best_std})")
-    else:
-        print("\n Impossible de déterminer une liste logique.")
-    count={}
+    print("\nHash value of the more dispersed list")
     for key, list_hash in result.items():
-        
-        count[key] = len(list_hash)
-        for entry in list_hash:
-            print(key, entry['hash_value'])
-    print(count)
+        if (key == best_list):
+            for entry in list_hash:
+                print(entry['hash_value'])
 
+                
+
+    # All the hash retrieved
+    print("\nHash value found in the binary")
+    for key, list_hash in result.items():
+        for entry in list_hash:
+            print(entry['hash_value'])
 def is_pe_file(file_path):
     try:
         with open(file_path, "rb") as file:
@@ -106,7 +120,7 @@ def is_pe_file(file_path):
         return False
 
 if __name__ == "__main__":
-    exe_path = "C:\\Users\\flarevm\\Desktop\\5f56d5748940e4039053f85978074bde16d64bd5ba97f6f0026ba8172cb29e93.exe"
+    exe_path = "C:\\Users\\flarevm\\Desktop\\ed22dd68fd9923411084acc6dc9a2db1673a2aab14842a78329b4f5bb8453215.dll"
     try:
         api_hashing_indicator(exe_path, is_pe_file(exe_path))
     except OSError as e:
