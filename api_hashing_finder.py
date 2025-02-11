@@ -117,10 +117,17 @@ def api_hashing_indicator(exe_path, is_pe_file):
                 
 
     # All the hash retrieved
-    print("\nHash value found in the binary")
+    print("\n-> Hash value found in the binary")
     for key, list_hash in result.items():
+        print(f"\n\t- Probable API-Resolve function at {key}")
+        if(key == best_list):
+            print("\n\t\t[More dispersed]")
+        if(key == max_address):
+            print(f"\t\t[Max x-ref] -> {max_count} calls")
+        
         for entry in list_hash:
-            print(entry['hash_value'])
+            print(f"\n\t\tHash address -> {hex(entry['address_of_hash'])}")
+            print(f"\t\tHash value   -> {entry['hash_value']}")
 def is_pe_file(file_path):
     try:
         with open(file_path, "rb") as file:
@@ -130,10 +137,9 @@ def is_pe_file(file_path):
         return False
 
 if __name__ == "__main__":
-    exe_path = "C:\\Users\\flarevm\\Desktop\\ed22dd68fd9923411084acc6dc9a2db1673a2aab14842a78329b4f5bb8453215.dll"
+    exe_path = "C:\\Users\\flarevm\\Desktop\\277d7f450268aeb4e7fe942f70a9df63aa429d703e9400370f0621a438e918bf.exe"
     try:
         api_hashing_indicator(exe_path, is_pe_file(exe_path))
     except OSError as e:
         print(f"Erreur d'accès au fichier : {e}")
-    except pefile.PEFormatError as e:
-        print(f"Erreur de format PE : {e.value}")
+   
