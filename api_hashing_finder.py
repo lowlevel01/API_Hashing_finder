@@ -2,8 +2,19 @@ import pefile
 import numpy as np
 from capstone import *
 import re
+import argparse
+import time
+
+def is_pe_file(file_path):
+    try:
+        with open(file_path, "rb") as file:
+            return file.read(2) == b'MZ'
+    except pefile.PEFormatError as e:
+        print(f"Erreur de format PE : {e.value}")
+        return False
 
 def api_hashing_indicator(exe_path, is_pe_file):
+    
     if is_pe_file:
         pe = pefile.PE(exe_path, fast_load=True)
         pe.parse_data_directories()
@@ -22,12 +33,14 @@ def api_hashing_indicator(exe_path, is_pe_file):
         with open(exe_path, "rb") as f:
             code_section = f.read()
         CS_MODE = CS_MODE_32
+        if b'\x48\x89' in code_section: 
+            CS_MODE = CS_MODE_64
         code_base = 0x0
 
     md = Cs(CS_ARCH_X86, CS_MODE)
     disasm_list = list(md.disasm(code_section, code_base))
     
-    suspicious_hex_value = []
+    #suspicious_hex_value = []
     no_suspicious_hex_address = []
     probable_resolve_function = []
     result = {}
@@ -71,17 +84,15 @@ def api_hashing_indicator(exe_path, is_pe_file):
                                     'address_of_hash': instr.address,
                                     'hash_value': hex(op)
                                 })
-                    
                                 count+=1
-                               
                                 break  
                         count_hash[next_instr.op_str] = count
-                        print(count_hash[next_instr.op_str])
+                        #print(count_hash[next_instr.op_str])
             except ValueError as e:
                 print(e)
                 continue  
 
-    print(count_hash)
+    #print(count_hash)
     max_address = max(count_hash, key=count_hash.get)
     max_count = count_hash[max_address]
     print(f"\nHave value of the most called list (x-ref)")
@@ -90,54 +101,72 @@ def api_hashing_indicator(exe_path, is_pe_file):
             for entry in list_hash:
                 print(entry['hash_value'])
     
+    if(args.all == True):
+        #print(count)
+        # The most dispersed list
+        best_std = float('-inf')
+        best_list = None
+        for key, list_hash in result.items():
+            stat_test = [int(entry["hash_value"], 16) for entry in list_hash]
+            stat_test.sort()
+            diffs = np.diff(stat_test)
+            
+            if len(diffs) > 0:
+                std_dev = np.std(diffs)
+                #print(key, std_dev)
+                if std_dev > best_std:  
+                    best_std = std_dev
+                    best_list = key  
 
-    #print(count)
-    # The most dispersed list
-    best_std = float('-inf')
-    best_list = None
-    for key, list_hash in result.items():
-        stat_test = [int(entry["hash_value"], 16) for entry in list_hash]
-        stat_test.sort()
-        diffs = np.diff(stat_test)
-        
-        if len(diffs) > 0:
-            std_dev = np.std(diffs)
-            print(key, std_dev)
-            if std_dev > best_std:  
-                best_std = std_dev
-                best_list = key  
 
-
-    print("\nHash value of the more dispersed list")
-    for key, list_hash in result.items():
-        if (key == best_list):
+        print("\n-> Hash value found in the binary")
+        for key, list_hash in result.items():
+            if(key == best_list):
+                print("\n\t\t[More dispersed]")
+            if(key == max_address):
+                print(f"\t\t[Max x-ref] -> {max_count} calls")
+            
             for entry in list_hash:
-                print(entry['hash_value'])
+                print(f"\t\t{entry['hash_value']}")
 
-                
-
-    # All the hash retrieved
-    print("\n-> Hash value found in the binary")
-    for key, list_hash in result.items():
-        print(f"\n\t- Probable API-Resolve function at {key}")
-        if(key == best_list):
-            print("\n\t\t[More dispersed]")
-        if(key == max_address):
-            print(f"\t\t[Max x-ref] -> {max_count} calls")
-        
-        for entry in list_hash:
-            print(f"\n\t\tHash address -> {hex(entry['address_of_hash'])}")
-            print(f"\t\tHash value   -> {entry['hash_value']}")
-def is_pe_file(file_path):
-    try:
-        with open(file_path, "rb") as file:
-            return file.read(2) == b'MZ'
-    except pefile.PEFormatError as e:
-        print(f"Erreur de format PE : {e.value}")
-        return False
+                    
+    if(args.verbose == True):
+        # All the hash retrieved
+        print("\n-> Hash value found in the binary")
+        for key, list_hash in result.items():
+            print(f"\n\t- Probable API-Resolve function at {key}")
+            if(key == best_list):
+                print("\n\t\t[More dispersed]")
+            if(key == max_address):
+                print(f"\t\t[Max x-ref] -> {max_count} calls")
+            
+            for entry in list_hash:
+                print(f"\n\t\tHash address -> {hex(entry['address_of_hash'])}")
+                print(f"\t\tHash value   -> {entry['hash_value']}")
 
 if __name__ == "__main__":
-    exe_path = "C:\\Users\\flarevm\\Desktop\\277d7f450268aeb4e7fe942f70a9df63aa429d703e9400370f0621a438e918bf.exe"
+
+    parser = argparse.ArgumentParser(description="Parameters are -h, -f, -a/--all and -o.")
+
+   
+    parser.add_argument("-f", "--file", help="Binary file to analyze (PE-file or shellcode)", type=str, required=True)
+    parser.add_argument("-a", "--all", help="This mode will show you all the list of probable hash value (Advised)\nDefault mode output the most called list (x-ref)", action="store_true")
+    parser.add_argument("-o", "--output", help="Create a simple file with all the hash value according to your mod (default/all)", type=str)
+    parser.add_argument('-v', "--verbose", help="Give you more informations about the hash values (Address of the resolving function, address of the value,...)", action="store_true")
+    
+    args = parser.parse_args()
+
+    #print(f"Mode all activé : {args.all}")
+
+    print(f"\nBeginning of the analysis : {args.file}")
+    if args.output:
+        print(f"\nOutput file : {args.output}")
+    else:
+        print("None output file given, output -> Terminal.")
+    time.sleep(2)
+    #exe_path = "C:\\Users\\flarevm\\Desktop\\277d7f450268aeb4e7fe942f70a9df63aa429d703e9400370f0621a438e918bf.exe"
+    exe_path = "C:\\Users\\flarevm\\Downloads\\7512be2746137d9694e3ec3a83e8ab4c6e4d826798a04381de53d4c6973d519f\\cwlkewfbz_023A0000.bin"
+    exe_path = args.file
     try:
         api_hashing_indicator(exe_path, is_pe_file(exe_path))
     except OSError as e:
