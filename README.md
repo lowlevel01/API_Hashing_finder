@@ -27,7 +27,7 @@ The script disassembles the executable code, extracts potential API hash values,
 
 You can install the dependencies using:
 ```bash
-pip install pefile numpy capstone
+pip install -r requirements.txt
 ```
 
 ## Usage
