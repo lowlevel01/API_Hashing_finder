@@ -164,8 +164,6 @@ if __name__ == "__main__":
     else:
         print("None output file given, output -> Terminal.")
     time.sleep(2)
-    #exe_path = "C:\\Users\\flarevm\\Desktop\\277d7f450268aeb4e7fe942f70a9df63aa429d703e9400370f0621a438e918bf.exe"
-    exe_path = "C:\\Users\\flarevm\\Downloads\\7512be2746137d9694e3ec3a83e8ab4c6e4d826798a04381de53d4c6973d519f\\cwlkewfbz_023A0000.bin"
     exe_path = args.file
     try:
         api_hashing_indicator(exe_path, is_pe_file(exe_path))
