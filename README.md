@@ -48,6 +48,39 @@ python script.py -f <path_to_binary> [options]
 ```bash
 python api_hashing_finder.py -f malv_file.bin -av
 ```
+```txt
+                [SNIPPED]
+
+-> Hash value found in the binary
+                [Max x-ref] -> 139 calls
+                0xac136ba
+                0x4ba8e6a6
+                0xbecffe7a
+                0x6a3b053f
+                0x5bfec5c3
+                0xd8a06af
+                0x11fe0a3
+                0xd4540229
+
+                [SNIPPED]
+
+-> Hash value found in the binary
+
+        - Probable API-Resolve function at 0x10001620
+                [Max x-ref] -> 139 calls
+
+                Hash address -> 0x10001024
+                Hash value   -> 0xac136ba
+
+                Hash address -> 0x10001061
+                Hash value   -> 0x4ba8e6a6
+
+                Hash address -> 0x10001104
+                Hash value   -> 0xbecffe7a
+
+                [SNIPPED]
+   
+```
 
 This will analyze `malv_file.bin`, displaying all detected hash values and detailed information.
 
