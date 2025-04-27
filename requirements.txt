@@ -2,3 +2,5 @@ pefile
 numpy
 capstone
 argparse
+requests
+json

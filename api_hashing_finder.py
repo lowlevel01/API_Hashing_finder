@@ -4,6 +4,8 @@ from capstone import *
 import re
 import argparse
 import time
+import requests
+import json
 
 def is_pe_file(file_path):
     try:
@@ -12,6 +14,20 @@ def is_pe_file(file_path):
     except pefile.PEFormatError as e:
         print(f"Erreur de format PE : {e.value}")
         return False
+
+def hunt_hash(hash):
+    hashdb = "https://hashdb.openanalysis.net/hunt"
+    hashdb_hunt = requests.post(hashdb, json={"hashes":[hash]}).content
+    response_json = json.loads(hashdb_hunt)
+
+    if not response_json["hits"]:
+        return f"[-] {hex(hash)} : Not Identified."
+
+    result = f"[+] {hex(hash)} is possibly : "
+    for algo in response_json["hits"]:
+        result += algo["algorithm"] + " "
+
+    return result
 
 def api_hashing_indicator(exe_path, is_pe_file):
     
